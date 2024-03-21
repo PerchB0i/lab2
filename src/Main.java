@@ -34,6 +34,7 @@ public class Main {
         LocalDate date = LocalDate.parse(dateString, formatter);
         */
         //pliczki
+        /*
         try {
             FileReader fileReader = new FileReader("C:\\Users\\student\\Desktop\\oop\\lab2\\family.csv");
             BufferedReader reader = new BufferedReader(fileReader);
@@ -46,6 +47,6 @@ public class Main {
             throw new RuntimeException(e);
         } catch (IOException e) {
             throw new RuntimeException(e);
-        }
+        }*/
     }
 }
