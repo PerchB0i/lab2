@@ -38,7 +38,6 @@ public class Person {
             line = reader.readLine();
         }
 
-
         return arrList;
     }
 }
