@@ -19,41 +19,26 @@ public class Person {
         person.name = splited[0];
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
         person.dateOfBirth = LocalDate.parse(splited[1], formatter);
-        if (splited[2] != null) {
+        if (!splited[2].isEmpty()) {
             person.dateOfDeath = LocalDate.parse(splited[2], formatter);
-        } else {
-            person.dateOfDeath = null;
         }
 
         return person;
     }
 
-    public static Person[] fromCSV(String filePath) {
+    public static ArrayList<Person> fromCSV(String filePath) throws IOException {
 
         ArrayList<Person> arrList = new ArrayList<>();
-        int counter = 0;
-
-        try {
-            FileReader fileReader = new FileReader("family.csv");
-            BufferedReader reader = new BufferedReader(fileReader);
-            String line = reader.readLine();
-            while (line != null) {
-                if(counter != 0)
-                    arrList.add(Person.fromCSVLine(line));
-                counter++;
-                line = reader.readLine();
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        FileReader fileReader = new FileReader(filePath);
+        BufferedReader reader = new BufferedReader(fileReader);
+        String line = reader.readLine();
+        line = reader.readLine();
+        while (line != null) {
+            arrList.add(Person.fromCSVLine(line));
+            line = reader.readLine();
         }
 
-        Person[] persons = new Person[counter];
-        int i = 0;
-        for (Person p:
-             arrList) {
-            persons[i] = p;
-        }
 
-        return persons;
+        return arrList;
     }
 }
