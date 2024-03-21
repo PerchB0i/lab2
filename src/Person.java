@@ -34,10 +34,23 @@ public class Person {
         String line = reader.readLine();
         line = reader.readLine();
         while (line != null) {
-            arrList.add(Person.fromCSVLine(line));
+            Person person = Person.fromCSVLine(line);
+            try {
+                person.CheckLifespan();
+                arrList.add(person);
+            } catch (NegativeLifespanException e) {
+                System.out.println(e.getMessage());
+            }
+
             line = reader.readLine();
         }
 
         return arrList;
+    }
+
+    public void CheckLifespan() throws NegativeLifespanException {
+        if (this.dateOfDeath != null && this.dateOfDeath.isBefore(dateOfBirth)) {
+            throw new NegativeLifespanException(this);
+        }
     }
 }
