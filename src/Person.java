@@ -31,14 +31,19 @@ public class Person {
         ArrayList<Person> arrList = new ArrayList<>();
         FileReader fileReader = new FileReader(filePath);
         BufferedReader reader = new BufferedReader(fileReader);
+
         String line = reader.readLine();
         line = reader.readLine();
+
         while (line != null) {
+
             Person person = Person.fromCSVLine(line);
+
             try {
                 person.CheckLifespan();
+                person.CheckAmbiguousPerson(arrList);
                 arrList.add(person);
-            } catch (NegativeLifespanException e) {
+            } catch (NegativeLifespanException | AmbiguousPersonException e) {
                 System.out.println(e.getMessage());
             }
 
@@ -49,8 +54,16 @@ public class Person {
     }
 
     public void CheckLifespan() throws NegativeLifespanException {
-        if (this.dateOfDeath != null && this.dateOfDeath.isBefore(dateOfBirth)) {
+        if (this.dateOfDeath != null && this.dateOfDeath.isBefore(dateOfBirth))
             throw new NegativeLifespanException(this);
+    }
+
+    public void CheckAmbiguousPerson(ArrayList<Person> personList) throws AmbiguousPersonException {
+        for (Person p:
+             personList) {
+            if (this.name.equals(p.name)) {
+                throw new AmbiguousPersonException(this);
+            }
         }
     }
 }
