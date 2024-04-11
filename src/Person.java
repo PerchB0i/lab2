@@ -1,69 +1,155 @@
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
+import javax.xml.transform.Result;
+import java.io.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
+import java.util.function.Function;
 
-public class Person {
-    public String name;
-    public LocalDate dateOfBirth;
-    public LocalDate dateOfDeath;
+public class Person implements Serializable {
+    public final String name;
+    public final LocalDate birth, death;
+    private List<Person> parents = new ArrayList<>();
+    public Person(String name, LocalDate birth, LocalDate death) {
+        this.name = name;
+        this.birth = birth;
+        this.death = death;
+    }
+    public static Person fromCsvLine(String line) {
+        String[] fields = line.split(",");
 
-    public static Person fromCSVLine(String line) {
-        String[] splited = line.split(",");
-        Person person = new Person();
-        person.name = splited[0];
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
-        person.dateOfBirth = LocalDate.parse(splited[1], formatter);
-        if (!splited[2].isEmpty()) {
-            person.dateOfDeath = LocalDate.parse(splited[2], formatter);
-        }
 
-        return person;
+        String birthString = fields[1];
+        String deathString = fields[2];
+        LocalDate birth = null, death = null;
+        if(!birthString.isEmpty())
+            birth = LocalDate.parse(birthString, formatter);
+        if(!deathString.isEmpty())
+            death = LocalDate.parse(deathString, formatter);
+
+        return new Person(fields[0], birth, death);
     }
 
-    public static ArrayList<Person> fromCSV(String filePath) throws IOException {
-
-        ArrayList<Person> arrList = new ArrayList<>();
-        FileReader fileReader = new FileReader(filePath);
-        BufferedReader reader = new BufferedReader(fileReader);
-
-        String line = reader.readLine();
-        line = reader.readLine();
-
-        while (line != null) {
-
-            Person person = Person.fromCSVLine(line);
-
-            try {
-                person.CheckLifespan();
-                person.CheckAmbiguousPerson(arrList);
-                arrList.add(person);
-            } catch (NegativeLifespanException | AmbiguousPersonException e) {
-                System.out.println(e.getMessage());
+    public static List<Person> fromCsv(String path) throws IOException {
+        BufferedReader br = new BufferedReader(new FileReader(path));
+        List<Person> result = new ArrayList<>();
+        List<PersonWithParentsNames> resultWithParents =  new ArrayList<>();
+        String line;
+        br.readLine();
+        try {
+            while ((line = br.readLine()) != null) {
+                PersonWithParentsNames personWithNames = PersonWithParentsNames.fromCsvLine(line);
+                personWithNames.person.validateLifespan();
+                personWithNames.person.validateAmbiguity(result);
+                resultWithParents.add(personWithNames);
+                result.add(personWithNames.person);
             }
-
-            line = reader.readLine();
+            PersonWithParentsNames.linkRelatives(resultWithParents);
+            try {
+                for(Person person: result)
+                    person.validateParentingAge();
+            }
+            catch(ParentingAgeException exception) {
+                Scanner scanner = new Scanner(System.in);
+                System.out.println(exception.getMessage());
+                System.out.println("Please confirm [Y/N]:");
+                String response = scanner.nextLine();
+                if(!response.equals("Y") && !response.equals("y"))
+                    result.remove(exception.person);
+            }
+        } catch (NegativeLifespanException | AmbiguousPersonException | UndefinedParentException exception) {
+            System.err.println(exception.getMessage());
         }
-
-        return arrList;
+        return result;
     }
-
-    public void CheckLifespan() throws NegativeLifespanException {
-        if (this.dateOfDeath != null && this.dateOfDeath.isBefore(dateOfBirth))
+    private void validateLifespan() throws NegativeLifespanException {
+        if(this.death != null && this.birth.isAfter(this.death))
             throw new NegativeLifespanException(this);
     }
 
-    public void CheckAmbiguousPerson(ArrayList<Person> personList) throws AmbiguousPersonException {
-        for (Person p:
-             personList) {
-            if (this.name.equals(p.name)) {
-                throw new AmbiguousPersonException(this);
+    private void validateAmbiguity(List<Person> peopleSoFar) throws AmbiguousPersonException {
+        for(Person person: peopleSoFar)
+            if(person.name.equals(this.name))
+                throw new AmbiguousPersonException(name);
+    }
+
+    private void validateParentingAge() throws ParentingAgeException {
+        for(Person parent: parents)
+            if (birth.isBefore(parent.birth.minusYears(15)) || ( parent.death != null && birth.isAfter(parent.death)))
+                throw new ParentingAgeException(this, parent);
+    }
+
+    public void addParent(Person person) {
+        parents.add(person);
+    }
+
+    @Override
+    public String toString() {
+        return "Person{" +
+                "name='" + name + '\'' +
+                ", birth=" + birth +
+                ", death=" + death +
+                ", parents=" + parents +
+                '}';
+    }
+
+    public static void toBinaryFile(List<Person> people, String filename) throws IOException {
+        try (
+                FileOutputStream fos = new FileOutputStream(filename);
+                ObjectOutputStream oos = new ObjectOutputStream(fos);
+        ) {
+            oos.writeObject(people);
+        }
+    }
+
+    public static List<Person> fromBinaryFile(String filename) throws IOException, ClassNotFoundException {
+        try (
+                FileInputStream fis = new FileInputStream(filename);
+                ObjectInputStream ois = new ObjectInputStream(fis);
+        ) {
+            return (List<Person>) ois.readObject();
+        }
+    }
+
+    public String toUML() {
+        StringBuilder objects = new StringBuilder();
+        StringBuilder relations = new StringBuilder();
+
+        Function<String, String> replaceSpaces = str -> str.replaceAll(" ", "");
+
+        objects.append("object " + replaceSpaces.apply(name) + "\n");
+
+        for(Person parent : parents) {
+            objects.append("object " +  replaceSpaces.apply(parent.name) + "\n");
+            relations.append(replaceSpaces.apply(name) + " <-- " +  replaceSpaces.apply(parent.name) + "\n");
+        }
+
+        return String.format(
+                "@startuml\n%s\n%s\n@enduml",
+                objects,
+                relations
+        );
+    }
+
+    public static String toUML(List<Person> people) {
+        Set<String> objects = new HashSet<>();
+        Set<String> relations = new HashSet<>();
+
+        Function<String, String> replaceSpaces = str -> str.replaceAll(" ", "");
+
+        for(Person person : people) {
+            objects.add("object " + replaceSpaces.apply(person.name));
+
+            for(Person parent : person.parents) {
+                objects.add("object " +  replaceSpaces.apply(parent.name));
+                relations.add(replaceSpaces.apply(person.name) + " <-- " +  replaceSpaces.apply(parent.name) + "\n");
             }
         }
+
+        return String.format(
+                "@startuml\n%s\n%s\n@enduml",
+                String.join("\n", objects),
+                String.join("", relations)
+        );
     }
 }

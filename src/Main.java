@@ -1,63 +1,40 @@
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class Main {
     public static void main(String[] args) {
-        //stringi
-        /*
-        String s = "aa,bb,cc";
-        String[] splited = s.split(",");
-        for (String str : splited) {
-            System.out.print(str + ' ');
-        }
+        PlantUMLRunner.setJarPath("plantuml-1.2024.3.jar");
+//        PlantUMLRunner.generate(data, "uml", "test");
 
-         */
-//listy
-/*
-        ArrayList<String> list = new ArrayList<String>();
-        list.add("test");
-        for (String str : list) {
-            System.out.print(str + ' ');
-        }
-        */
-//data
-        /*
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
-        String dateString = "10.10.2010";
-        LocalDate date = LocalDate.parse(dateString, formatter);
-        */
-        //pliczki
-        /*
         try {
-            FileReader fileReader = new FileReader("C:\\Users\\student\\Desktop\\oop\\lab2\\family.csv");
-            BufferedReader reader = new BufferedReader(fileReader);
-            String line = reader.readLine();
-            while(line != null) {
-                //...line
-                line = reader.readLine();
-            }
-        } catch (FileNotFoundException e) {
-            throw new RuntimeException(e);
+            List<Person> people = Person.fromCsv("family.csv");
+
+//            Optional<String> changedPeople = people
+//                    .stream()
+//                    .sorted((person1, person2) -> person1.name.compareTo(person2.name))
+//                    .map(person -> person.name)
+//                    .filter(name -> !name.equals("Anna Dąbrowska"))
+//                    .max((name1, name2) -> name1.compareTo(name2));
+//                    .collect(Collectors.toList());
+
+//            if(!changedPeople.isEmpty()) {
+//                System.out.println(changedPeople.get());
+//            }
+
+//            for(String person: changedPeople)
+//                System.out.println(person);
+//
+//            String uml = Person.toUML(people);
+//            PlantUMLRunner.generate(uml, "uml", "family");
+
+//            Person person = people.get(2);
+//            String uml = person.toUML();
+//            PlantUMLRunner.generate(uml, "uml", person.name);
+
         } catch (IOException e) {
             throw new RuntimeException(e);
-        }*/
-        List<Person> persons;
-        try {
-            persons = Person.fromCSV("family.csv");
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
-        for (Person p:
-             persons) {
-            System.out.print(p.name + '\n');
         }
     }
 }
